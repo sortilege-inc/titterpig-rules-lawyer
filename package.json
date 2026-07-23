@@ -1,0 +1,32 @@
+{
+  "name": "titterpig-rules-lawyer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hybrid-retrieval rules assistant over titterpig-synthesist resolved corpora.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "ingest": "tsx scripts/ingest.ts",
+    "search": "tsx scripts/search.ts",
+    "corpora": "tsx scripts/corpora.ts",
+    "mcp": "tsx src/mcp/server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.19.1",
+    "better-sqlite3": "^12.2.0",
+    "dotenv": "^17.2.1",
+    "sqlite-vec": "^0.1.7-alpha.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.20.4",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4"
+  }
+}
