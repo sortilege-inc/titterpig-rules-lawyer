@@ -48,6 +48,7 @@ describe("MCP server (in-memory transport)", () => {
       registryPath,
       dbPathFor: (id) => resolve(dir, `${id}.db`),
       provider: () => new FakeEmbeddingProvider(64),
+      statePath: resolve(dir, "active-corpus.json"),
     });
 
     const [clientTransport, serverTransport] =
@@ -64,38 +65,75 @@ describe("MCP server (in-memory transport)", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("advertises the four tools", async () => {
+  it("advertises the corpus + scope tools", async () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual([
+      "active_corpus",
       "get_entity",
       "get_related",
       "list_corpora",
       "search_rules",
+      "select_corpus",
     ]);
   });
 
-  it("list_corpora reports the indexed corpus", async () => {
+  it("query tools refuse before a corpus is in scope", async () => {
+    const res = (await client.callTool({
+      name: "search_rules",
+      arguments: { query: "Vulnerable condition" },
+    })) as { isError?: boolean };
+    expect(res.isError).toBe(true);
+  });
+
+  it("active_corpus reports null before selection", async () => {
+    const res = await client.callTool({ name: "active_corpus", arguments: {} });
+    expect(parseToolJson(res).active).toBeNull();
+  });
+
+  it("select_corpus puts a corpus in scope", async () => {
+    const res = await client.callTool({
+      name: "select_corpus",
+      arguments: { corpus: CORPUS },
+    });
+    expect(parseToolJson(res).active).toBe(CORPUS);
+
+    const active = await client.callTool({ name: "active_corpus", arguments: {} });
+    expect(parseToolJson(active).active).toBe(CORPUS);
+  });
+
+  it("select_corpus rejects an unknown/unindexed corpus", async () => {
+    const res = (await client.callTool({
+      name: "select_corpus",
+      arguments: { corpus: "not-a-corpus-9.9" },
+    })) as { isError?: boolean };
+    expect(res.isError).toBe(true);
+  });
+
+  it("list_corpora marks the active corpus", async () => {
     const res = await client.callTool({ name: "list_corpora", arguments: {} });
     const data = parseToolJson(res);
+    expect(data.active).toBe(CORPUS);
     expect(data.corpora[0].id).toBe(CORPUS);
     expect(data.corpora[0].indexed).toBe(true);
     expect(data.corpora[0].entityCount).toBe(803);
+    expect(data.corpora[0].active).toBe(true);
   });
 
   it("search_rules (hybrid) finds the Condition entity for 'Vulnerable'", async () => {
     const res = await client.callTool({
       name: "search_rules",
-      arguments: { corpus: CORPUS, query: "Vulnerable condition", mode: "hybrid", k: 8 },
+      arguments: { query: "Vulnerable condition", mode: "hybrid", k: 8 },
     });
     const data = parseToolJson(res);
+    expect(data.corpus).toBe(CORPUS);
     expect(data.results.map((r: any) => r.name)).toContain("Condition");
   });
 
   it("get_entity returns full verbatim text by name", async () => {
     const res = await client.callTool({
       name: "get_entity",
-      arguments: { corpus: CORPUS, name_or_hash: "Condition" },
+      arguments: { name_or_hash: "Condition" },
     });
     const data = parseToolJson(res);
     expect(data.text).toContain("Vulnerable");
@@ -105,7 +143,7 @@ describe("MCP server (in-memory transport)", () => {
   it("get_entity reports a clear error for an unknown name", async () => {
     const res = (await client.callTool({
       name: "get_entity",
-      arguments: { corpus: CORPUS, name_or_hash: "No Such Thing Xyzzy" },
+      arguments: { name_or_hash: "No Such Thing Xyzzy" },
     })) as { isError?: boolean };
     expect(res.isError).toBe(true);
   });
@@ -113,7 +151,7 @@ describe("MCP server (in-memory transport)", () => {
   it("get_related resolves a known entity", async () => {
     const res = await client.callTool({
       name: "get_related",
-      arguments: { corpus: CORPUS, name: "Condition" },
+      arguments: { name: "Condition" },
     });
     const data = parseToolJson(res);
     expect(Array.isArray(data.extendsChildren)).toBe(true);

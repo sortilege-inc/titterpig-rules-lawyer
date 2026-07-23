@@ -13,6 +13,7 @@
     "ingest": "tsx scripts/ingest.ts",
     "search": "tsx scripts/search.ts",
     "corpora": "tsx scripts/corpora.ts",
+    "use": "tsx scripts/use.ts",
     "mcp": "tsx src/mcp/server.ts"
   },
   "dependencies": {

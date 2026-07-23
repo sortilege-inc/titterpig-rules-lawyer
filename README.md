@@ -47,16 +47,36 @@ ollama pull nomic-embed-text  # optional; enables semantic search
 npm run ingest -- --corpus daggerheart-0.4 --embed
 npm run ingest -- --corpus daggerheart-0.4 --embed --force   # rebuild
 
-# List indexed corpora
+# List indexed corpora (marks the in-scope one)
 npm run corpora
 
-# Debug retrieval without the LLM
-npm run search -- daggerheart-0.4 "what happens when I mark my last Stress" --mode hybrid --k 8
+# Choose the in-scope corpus (the working set questions run against)
+npm run use -- daggerheart-0.4
+npm run use               # print current scope
+npm run use -- --clear    # clear it
+
+# Debug retrieval without the LLM (uses the in-scope corpus if no id given)
+npm run search -- "what happens when I mark my last Stress" --mode hybrid --k 8
+npm run search -- tor2e-0.4 "being Weary"   # ad-hoc override
+```
+
+### Scope: one corpus at a time
+
+Exactly one corpus is **in scope** at a time — a `cd`-like working set. The query
+tools operate only on it, so questions never blend rules across editions. Set it
+with `select_corpus` (in Claude) or `npm run use` (CLI); it persists in
+`data/active-corpus.json` until changed. To lock a whole session to one corpus
+with no cross-session bleed, launch pinned:
+
+```bash
+RULES_LAWYER_CORPUS=daggerheart-0.4 claude   # immutable scope for this session
 ```
 
 Then, in **Claude Code** (the `.mcp.json` here registers the server), just ask a
-ruling question — the `rules-lawyer` skill drives search → read → cite. The MCP
-server exposes `list_corpora`, `search_rules`, `get_entity`, `get_related`.
+ruling question — the `rules-lawyer` skill drives select → search → read → cite.
+MCP tools: `list_corpora`, `active_corpus`, `select_corpus`, `search_rules`,
+`get_entity`, `get_related` (the last three run against the in-scope corpus and
+take no corpus argument).
 
 ## Layout
 
@@ -68,7 +88,8 @@ server exposes `list_corpora`, `search_rules`, `get_entity`, `get_related`.
 | `src/core/retrieval.ts` | hybrid search, `get_entity`, `get_related` |
 | `src/core/embeddings/` | pluggable providers (Ollama default, fake for tests) |
 | `src/mcp/` | MCP server (`build.ts` factory + `server.ts` stdio entry) |
-| `scripts/` | `ingest` / `search` / `corpora` CLIs |
+| `src/core/session.ts` | in-scope corpus selection (env pin / state file) |
+| `scripts/` | `ingest` / `search` / `corpora` / `use` CLIs |
 | `.claude/skills/rules-lawyer/` | the answering workflow (verbatim quotes, reflection) |
 | `docs/web-phase.md` | notes for the future Claude-API web UI |
 

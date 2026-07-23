@@ -4,6 +4,7 @@ import { parseArgs } from "node:util";
 import { Store } from "../src/core/store.js";
 import { search } from "../src/core/retrieval.js";
 import { dbPathFor, defaultProvider } from "../src/core/config.js";
+import { getActiveCorpus } from "../src/core/session.js";
 import type { SearchMode } from "../src/core/types.js";
 
 const { values, positionals } = parseArgs({
@@ -11,14 +12,23 @@ const { values, positionals } = parseArgs({
   options: {
     mode: { type: "string", default: "hybrid" },
     k: { type: "string", default: "8" },
+    corpus: { type: "string" },
   },
 });
 
-const [corpus, ...queryParts] = positionals;
+// Corpus resolution: --corpus flag > active selection > first positional.
+// This lets `search.ts "<query>"` reuse the in-scope corpus (npm run use),
+// while `search.ts <corpus> "<query>"` still works for ad-hoc lookups.
+let corpus = values.corpus ?? getActiveCorpus().corpus ?? undefined;
+let queryParts = positionals;
+if (!corpus) {
+  [corpus, ...queryParts] = positionals;
+}
 const query = queryParts.join(" ");
 if (!corpus || !query) {
   console.error(
-    'usage: search.ts <corpus> "<query>" [--mode hybrid|keyword|vector] [--k N]',
+    'usage: search.ts [<corpus>] "<query>" [--corpus id] [--mode hybrid|keyword|vector] [--k N]\n' +
+      "       (corpus defaults to the in-scope one set via `npm run use`)",
   );
   process.exit(2);
 }

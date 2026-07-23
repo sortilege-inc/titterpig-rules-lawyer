@@ -3,5 +3,6 @@ data/index/*.db
 data/index/*.db-shm
 data/index/*.db-wal
 data/index/*.db.tmp
+data/active-corpus.json
 .env
 *.log
