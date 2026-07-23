@@ -33,7 +33,14 @@ export const CorpusEntrySchema = z.object({
 export type CorpusEntry = z.infer<typeof CorpusEntrySchema>;
 
 export const RegistrySchema = z.object({
-  corpora: z.array(CorpusEntrySchema),
+  /**
+   * Directory to auto-discover corpora in: every `<id>.merged.ttrpg` under it
+   * (paired with a sibling `<id>.resolved.json`) becomes a corpus. Relative to
+   * corpora.json; overridden by the TITTERPIG_CORPORA env var.
+   */
+  root: z.string().optional(),
+  /** Explicit entries; supplement discovery and win on id collision. */
+  corpora: z.array(CorpusEntrySchema).default([]),
 });
 export type Registry = z.infer<typeof RegistrySchema>;
 

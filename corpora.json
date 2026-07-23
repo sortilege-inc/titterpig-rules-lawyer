@@ -1,20 +1,4 @@
 {
-  "corpora": [
-    {
-      "id": "daggerheart-0.4",
-      "merged": "/home/hewhocutsdown/Working/2025-2026 Caul/caul-support/build/rules/daggerheart-0.4.merged.ttrpg",
-      "resolved": "/home/hewhocutsdown/Working/2025-2026 Caul/caul-support/build/rules/daggerheart-0.4.resolved.json"
-    },
-    {
-      "id": "tor2e-0.4",
-      "merged": "/home/hewhocutsdown/Working/Titterpig Utilities/titterpig-synthesist/dist/tor2e-0.4.merged.ttrpg",
-      "resolved": "/home/hewhocutsdown/Working/Titterpig Utilities/titterpig-synthesist/dist/tor2e-0.4.resolved.json",
-      "sources": "/home/hewhocutsdown/Working/Titterpig DSL/titterpig-dsl-tor2e/0.4/sources.json"
-    },
-    {
-      "id": "l5r5e-0.4",
-      "merged": "/home/hewhocutsdown/Working/Titterpig Utilities/titterpig-synthesist/dist/l5r5e-0.4.merged.ttrpg",
-      "resolved": "/home/hewhocutsdown/Working/Titterpig Utilities/titterpig-synthesist/dist/l5r5e-0.4.resolved.json"
-    }
-  ]
+  "root": "../titterpig-corpora",
+  "corpora": []
 }

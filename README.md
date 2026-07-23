@@ -38,7 +38,26 @@ cp .env.example .env          # optional; defaults are fine
 ollama pull nomic-embed-text  # optional; enables semantic search
 ```
 
-`corpora.json` maps corpus ids to their synthesist artifact paths.
+### Where corpora come from
+
+`corpora.json` points at a **corpus store** via `root` (default
+`../titterpig-corpora`, overridable with the `TITTERPIG_CORPORA` env var). Every
+`<id>.merged.ttrpg` under that root — paired with a sibling `<id>.resolved.json`,
+and optionally `<id>.sources.json` — is auto-discovered as a corpus, its id taken
+from the filename. Drop synthesist output in, organized however you like (the
+convention is `<edition>/<version>/`):
+
+```
+titterpig-corpora/
+  tor2e/0.4/tor2e-0.4.merged.ttrpg
+  tor2e/0.4/tor2e-0.4.resolved.json
+  daggerheart/0.4/daggerheart-0.4.merged.ttrpg
+  daggerheart/0.4/daggerheart-0.4.resolved.json
+```
+
+For artifacts that live elsewhere, add explicit `corpora` entries (with absolute
+or corpora.json-relative `merged`/`resolved`/`sources` paths); they supplement
+discovery and win on id collision.
 
 ## Use
 
