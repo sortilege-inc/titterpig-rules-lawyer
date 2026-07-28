@@ -20,6 +20,11 @@ import type { ResolvedIndex } from "./resolved.js";
  *    targets that resolved.json drops (e.g. "Adventuring Phase" in GAME_STRUCTURE).
  *  - Nested DEFs inside a depth-1 *entity* are NOT promoted — they are the
  *    entity's own typed sub-structure and stay within the entity's text.
+ *  - v0.5 `GUIDANCE` is a depth-1 pure container of `ENTRY ^"Name" #hash { … }`
+ *    sidebars. Each ENTRY is promoted to its own 'guidance' chunk (real name +
+ *    hash); the GUIDANCE wrapper itself is suppressed. Other v0.5 blocks
+ *    (HOOKS, OPTIONAL, REFERENCES) live inside DEF bodies and ride along in the
+ *    entity's verbatim text; their caret refs are picked up by extractRefs.
  *
  * The scanner is character-level so it tracks string state across newlines
  * (multi-line string values occur) and treats `#` as a comment only outside
@@ -46,6 +51,11 @@ interface BlockHeader {
 const HEADER_RE =
   /(?:#(\S+)\s+)?(?:\^"((?:[^"\\]|\\.)*)"|(ACTOR|TEMPLATE)\s+"((?:[^"\\]|\\.)*)")\s+DEF\s*$/;
 const GENERIC_RE = /^([A-Z][A-Z0-9_]*)\s*$/;
+// v0.5 GUIDANCE entries: `ENTRY ^"Name" #hash {` (hash follows the name, unlike DEF).
+const ENTRY_RE = /^ENTRY\s+\^"((?:[^"\\]|\\.)*)"(?:\s+#(\S+))?\s*$/;
+
+/** Depth-1 blocks that are pure containers of promoted children (no own content). */
+const CONTAINER_ONLY_BLOCKS = new Set(["GUIDANCE"]);
 
 function classifyHeader(headerText: string): BlockHeader | null {
   const t = headerText.trimEnd();
@@ -57,6 +67,10 @@ function classifyHeader(headerText: string): BlockHeader | null {
     }
     const actorKind = def[3] === "ACTOR" ? "actor" : "template";
     return { kind: actorKind, name: unescape(def[4]!), hashId };
+  }
+  const entry = ENTRY_RE.exec(t.trim());
+  if (entry) {
+    return { kind: "guidance", name: unescape(entry[1]!), hashId: entry[2] ?? null };
   }
   const generic = GENERIC_RE.exec(t.trim());
   if (generic) return { kind: "block", name: generic[1]!, hashId: null };
@@ -303,7 +317,13 @@ export function chunk(src: string, opts: ChunkOptions): Chunk[] {
 
   for (const b of blocks) {
     const top = build(b, null, []);
-    chunks.push(top);
+    // v0.5 GUIDANCE is a pure container: its ENTRY children are the real,
+    // individually-citable chunks. Emitting the wrapper too would create many
+    // identically-named "GUIDANCE" chunks that collapse under search's
+    // dedupe-by-name — so suppress it when it actually has promoted children.
+    const containerOnly =
+      CONTAINER_ONLY_BLOCKS.has(b.header.name) && b.nested.length > 0;
+    if (!containerOnly) chunks.push(top);
     for (const child of b.nested) {
       chunks.push(build(child, b.header.name, top.sources));
     }

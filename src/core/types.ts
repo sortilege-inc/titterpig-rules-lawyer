@@ -8,7 +8,7 @@ export interface Chunk {
   name: string;
   /** Enclosing top-level GenericBlock, when this chunk is a promoted nested DEF. */
   parent: string | null;
-  kind: "def" | "actor" | "template" | "block";
+  kind: "def" | "actor" | "template" | "block" | "guidance";
   /** EXTENDS target (from resolved.json), when present. */
   extends: string | null;
   /** Stable #hash anchor, when the source DEF carried one. */

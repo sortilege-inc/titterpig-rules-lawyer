@@ -54,14 +54,24 @@ export function parseResolved(json: string): ResolvedDocument {
   return ResolvedDocumentSchema.parse(JSON.parse(json));
 }
 
+/**
+ * Strip DSL string escaping (`\"` → `"`), matching how the chunker unescapes
+ * names captured from `^"…"` headers. synthesist's resolved.json keeps the
+ * DSL escaping in names (e.g. arm5e's `Intellego (In) \"I Perceive\"`), so both
+ * sides must be normalized the same way or the metadata join silently misses.
+ */
+function unescape(s: string): string {
+  return s.replace(/\\(.)/g, "$1");
+}
+
 export function loadResolved(path: string): ResolvedIndex {
   const doc = parseResolved(readFileSync(path, "utf8"));
   const byName = new Map<string, EntityMeta>();
   for (const e of doc.entities) {
     if (!e.name) continue;
-    byName.set(e.name, {
+    byName.set(unescape(e.name), {
       kind: e.kind,
-      extends: e.extends ?? null,
+      extends: e.extends ? unescape(e.extends) : null,
       hashId: e.hash ?? null,
       sources: e.sources ?? [],
     });

@@ -114,6 +114,52 @@ describe("nested-DEF promotion", () => {
   });
 });
 
+describe("v0.5 GUIDANCE promotion", () => {
+  const src = `BASE "x" {
+    #tAAAAAAAAAAAAAAAA ^"Real Entity" DEF {
+        DESCRIPTION "core mechanic"
+        REFERENCES {
+            "surface form" -> #tBBBBBBBBBBBBBBBB ^"Some Target"
+        }
+    }
+    GUIDANCE {
+        ENTRY ^"Character Creation Summary" #tCCCCCCCCCCCCCCCC {
+            CONCERNS [^"Real Entity"]
+            TEXT "Step 1. Do the thing. Step 2. Do the other thing."
+        }
+    }
+    GUIDANCE {
+        ENTRY ^"Sample Childhoods" #tDDDDDDDDDDDDDDDD {
+            TEXT "Some worked examples of childhoods."
+        }
+    }
+}
+`;
+  const idx = { edition: "x", specVersion: "0.5", entityCount: 1, byName: new Map() };
+  const chunks = chunk(src, { corpusId: "t", resolved: idx });
+
+  it("promotes each ENTRY to its own guidance chunk with real name + hash", () => {
+    const g = chunks.filter((c) => c.kind === "guidance");
+    expect(g.map((c) => c.name).sort()).toEqual([
+      "Character Creation Summary",
+      "Sample Childhoods",
+    ]);
+    const summary = g.find((c) => c.name === "Character Creation Summary")!;
+    expect(summary.hashId).toBe("tCCCCCCCCCCCCCCCC");
+    expect(summary.parent).toBe("GUIDANCE");
+    expect(summary.text).toContain("Do the thing");
+  });
+
+  it("suppresses the GUIDANCE wrapper (no chunk named GUIDANCE)", () => {
+    expect(chunks.some((c) => c.name === "GUIDANCE")).toBe(false);
+  });
+
+  it("keeps REFERENCES targets in the entity's caret refs", () => {
+    const ent = chunks.find((c) => c.name === "Real Entity")!;
+    expect(ent.refs).toContain("Some Target");
+  });
+});
+
 describe("string / comment state machine", () => {
   it("ignores braces inside strings", () => {
     const src = `BASE "x" {\n    ^"A" DEF {\n        DESCRIPTION "a } brace { inside"\n    }\n}\n`;
